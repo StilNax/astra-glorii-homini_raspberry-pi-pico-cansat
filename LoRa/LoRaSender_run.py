@@ -41,7 +41,4 @@ class LoRa_run:
         self.lora = SX127x(lora_spi, pins=lora_pins, parameters=lora_default)
 
     def send(self, data):
-        # print("LoRa Sender")
-        # print('TX: {}'.format(data))
-
         self.lora.println(data)

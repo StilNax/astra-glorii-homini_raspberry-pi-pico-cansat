@@ -10,6 +10,7 @@ class GPS_NEO_7M_run:
         rxPin = Pin(17)  # named argument - rx pin
 
         self.gps_module = UART(UARTid, baudrate, tx=txPin, rx=rxPin)
+        self.msg = ""
 
         # Configurate GPS output
         GPS_config(self.gps_module)

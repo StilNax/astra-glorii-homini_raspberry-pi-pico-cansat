@@ -101,9 +101,7 @@ def bno_run(self):
                      .format(yaw, pitch, roll))
             resp2 = ("{:.2f}; {:.2f}; {:.2f}"
                      .format(x_accel, y_accel, z_accel))
-            # print("--------------------------------------------")
             return f'{resp1}, {resp2}'
-            # return yaw, pitch, roll, x_accel, y_accel, z_accel, res1, res2, res3
         except RVCReadTimeoutError:
             print("Unable to read BNO08x UART.")
         sleep(.1)
@@ -335,6 +333,7 @@ while True:
 
     i += 1
     sd_counter += 1
+    time.sleep_ms(100)
 ```
 ```tmp_sensor_data``` string used as a SD card buffer together with ```sd_counter``` counter limit the number of saving operations on the card. Furthermore, they enhance the capacity of sensors data reading.
 
