@@ -20,7 +20,7 @@ class BMP_run:
 
         # create a BMP 280 object
         self.bmp280_object = BMP280(bmp_i2c_object,
-                                    addr=0x76,  # change it
+                                    addr=0x76,
                                     use_case=BMP280_CASE_WEATHER)
 
         # configure the sensor
@@ -53,6 +53,6 @@ class BMP_run:
         h_alti = "{:.2f}".format(h)
         i_alti = "{:.2f}".format(altitude)
 
-        resp = f'{press}; {i_alti}; {h_alti}; {temperature_c};'
+        resp = f'{press},{i_alti},{h_alti},{temperature_c}'
         return resp
 

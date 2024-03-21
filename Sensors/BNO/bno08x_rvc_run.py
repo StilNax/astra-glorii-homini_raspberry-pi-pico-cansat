@@ -17,13 +17,14 @@ class BNO_run:
         try:
             try:
                 yaw, pitch, roll, x_accel, y_accel, z_accel = self.rvc.heading
-                resp1 = ("{:.2f}; {:.2f}; {:.2f}"
+                resp1 = ("{:.2f},{:.2f},{:.2f}"
                          .format(yaw, pitch, roll))
-                resp2 = ("{:.2f}; {:.2f}; {:.2f}"
+                resp2 = ("{:.2f},{:.2f},{:.2f}"
                          .format(x_accel, y_accel, z_accel))
-                return f'{resp1}, {resp2}'
+                return f'{resp1},{resp2}'
             except RVCReadTimeoutError:
                 print("Unable to read BNO08x UART.")
-            sleep(.1)
+                return "None"
         except KeyboardInterrupt:
             print("\nCtrl-C pressed to exit.")
+            return "None"
