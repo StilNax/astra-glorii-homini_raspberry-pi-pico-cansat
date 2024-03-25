@@ -491,7 +491,7 @@ Averaging data is also connected with changes in entering data to the second thr
         return data_resp
     ```
    The above element solves the problem the `thread` library has with dividing `float` data resulting in unstable functioning of the program.  
-<br>
+<br />
 3. returning the averaged data together with validated GPS data
     ```python
     sensors_data_tmp_new = str(coma_valid(bmp_lora_resp)) + ";" + str(coma_valid(bno_lora_resp)) + ";" + str(gps_lora_resp)
