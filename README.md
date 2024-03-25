@@ -88,7 +88,7 @@ def __init__(self):
     self.rvc = BNO08x_RVC(self.bno_uart)
 ```
 UART-RVC communication protocol is better than regular UART protocol as it can send data in the form of packages that are easier to use and enables better data management.
-However, it is slower than other communication protocols. Yet thanks to our calibration it won't have any undesirable effects on the efficiency of our program.
+However, it is slower than other communication protocols. Thanks to calibration it won't have any undesirable effects on the efficiency of the program.
 
 
 * reading data from BNO085 and converting it to more useful and easy to interpret data presentation  
@@ -147,7 +147,6 @@ def GPS_config(uart):
 The ```data``` list consisting of hex format ubx messages configures GPS settings listed in the comments.
 Thus, GPS returns only RMC message type and increases the frequency of data receiving. 
 Ubx messages are sent directly to GPS by UART communication protocol.
-The data rate that we used is still in the process of evaluation to provide maximum measurement efficiency so that it can be adjusted at further stages of the project.
 
 * managing data from GPS  
 ```python
@@ -173,8 +172,8 @@ def gps7m_run(self):
     except:
         return "ERROR! " + self.msg
 ```
-We must make the GPS data size as small as possible due to the necessity of optimization of the whole module message. 
-To do that we decided to select from RMC message the data that is crucial to our missions (latitude, longitude, speed over the ground, date or magnetic variation in degrees). 
+The GPS data size must be as small as possible due to the necessity of optimization of the whole module message. 
+To do that the data that is crucial to the missions is selected from RMC message (latitude, longitude, speed over the ground, date or magnetic variation in degrees). 
 Moreover, this solution will help with transferring the data via LoRa radio module. 
 
 <br />
@@ -252,7 +251,7 @@ class LoRa_run:
 
         self.lora = SX127x(lora_spi, pins=lora_pins, parameters=lora_default)
 ```
-This solution includes the most accurate configuration that meets our requirements but it still being checked to provide maximum data sending efficiency so that it can be changed at further stages of the project. 
+This solution includes the most accurate configuration that meets the requirements provides maximum data sending efficiency. 
 
 * sending data via LoRa radio module
 ```python
@@ -281,8 +280,8 @@ from Sensors.GPS_Neo7M.GPS_NEO_7M_run import GPS_NEO_7M_run
 # import LoRa library's
 from LoRa.LoRaSender_run import LoRa_run
 ```
-Thanks to object programing that we used all of the above solutions are included in ```main.py``` file as libraries.
-Such approach makes our project easier to manage and develop.
+Thanks to object programing used all of the above solutions are included in ```main.py``` file as libraries.
+Such approach makes the project easier to manage and develop.
 
 * initialization of all sensors, SD card reader and LoRa radio module
 ```python
@@ -335,7 +334,8 @@ while True:
     sd_counter += 1
     time.sleep_ms(100)
 ```
-```tmp_sensor_data``` string used as a SD card buffer together with ```sd_counter``` counter limit the number of saving operations on the card. Furthermore, they enhance the capacity of sensors data reading.
+```tmp_sensor_data``` string used as a SD card buffer together with ```sd_counter``` counter limit the number of saving operations on the card. 
+Furthermore, they enhance the capacity of sensors data reading.
 
 * multithreading concept
 ```python
@@ -355,7 +355,7 @@ if not is_sending:
 The above instruction initializes a new thread every time ```LoRa_sender``` function ends transferring data via LoRa. 
 The```is_sending``` flag shows that the ```LoRa_sender``` function has ended and can be recalled in a new thread again.
 Furthermore, in this way using more cores than available (Raspberry Pi Pico has two cores) is prevented.
-The multithreading solution is crucial to our missions to maximize the amount of data received from sensors while at the same time send data via LoRa at constant frequency.
+The multithreading solution is crucial to the  missions to maximize the amount of data received from sensors while at the same time send data via LoRa at constant frequency.
 
 * sending data via LoRa radio module
 ```python
@@ -368,4 +368,137 @@ def LoRa_sender(id, j, sensors_data_tmp):
     is_sending = False
     return
 ```
-```LoRa_sender``` function within one threat must be followed by a return statement which ends the functioning of ```Lora_sender``` as well as the thread in which it was called. But for this mechanism the multithreading solution would work in an unstable way.
+```LoRa_sender``` function within one threat must be followed by a return statement which ends the functioning of ```Lora_sender``` as well as the thread in which it was called. 
+But for this mechanism the multithreading solution would work in an unstable way.
+
+<br />
+
+### - Update 1.1"
+#### usage of `uasyncio` library:
+* asynchronism concept
+```python
+import uasyncio
+```
+Thanks to `uasyncio` library GPS module data can be read at a lower frequency than in case of other sensors, which is crucial taking into account the fact that GPS module inherently responses more rarely than other sensors.
+
+* getting data from gps
+```python
+async def GPS_get():
+    global gps_resp
+
+    start_gps_time = time.time_ns()
+    gps_resp = str(GPS_NEO_7M_object.gps7m_run())
+    end_gps_time = time.time_ns()
+    delay = 100 - ((end_gps_time - start_gps_time) * 0.000001)
+    await uasyncio.sleep_ms(int(delay))
+```
+This function enables reading GPS module data in an asynchronous way. At the same time it slows down another reading by 100ms assuring stability and preventing overwriting. 
+
+* acync inicjalization:
+```python
+async def main():
+    uasyncio.create_task(Sensors_management())
+
+    while True:
+        await GPS_get()
+```
+On the first CPU core the program runs as two asynchronous elements: data reading from the sensors and date reading from the GPS module. 
+The data is then transferred between the tasks and finally between the CPU cores.
+
+<br />
+
+### - Update 1.2"
+#### diode management:
+* diode colours concept
+```python
+class RGB_led:
+    def __init__(self):
+        # RGB diode pin initialization
+        self.red_diode = Pin(15, Pin.OUT)
+        self.green_diode = Pin(14, Pin.OUT)
+        self.blue_diode = Pin(18, Pin.OUT)
+```
+The RGB diode is connected to three Raspberry Pi Pico logic pins which are defined as ```Pin.OUT```. It enables driving an output voltage to the chosen pins in order to acquire a specific colour:
+```python
+def purple(self):
+    self.blue_diode.value(1)
+    self.green_diode.value(0)
+    self.red_diode.value(1)
+```
+
+* import class into `main.py`
+```python
+# import RGB diode libraries
+from RGB_diode.diode_management import RGB_led
+
+led = RGB_led()
+```
+Thanks to such a solution changing the colour of the diode is easy, clear and dynamic in the whole working process:  
+```python
+led.cyan()
+```
+
+<br />
+
+### - Update 1.3"
+#### averaging data sent by LoRa:
+* averaging concept
+
+Averaging several consecutive readings raises the credibility and accuracy of data reading. It is particularly crucial in the process of setting the trajectory of CanSat flight since the data which is being sent includes no noise which might cause variation or distortion obscuring the outcome.    
+```python
+LoRa_object.send(str(j) + ";" + average(sensors_data_tmp) + ";" + str(now_ms) + ";" + str(delay_ms))
+```
+Averaging data is also connected with changes in entering data to the second threat:
+1. assigning a set of readings to data type list in order to facilitate data operation in later stages
+    ```python
+    data_for_lora_tmp = [bmp_resp, bno_resp, gps_resp]
+    data_for_lora.append(data_for_lora_tmp)
+    ```
+2. solving object reference problem by copying the temporary list to a new list and then clearing the former
+    ```python
+    sensors_data_tmp = data_for_lora[:]
+    data_for_lora.clear()
+    ```
+
+* `average.py` function operation
+
+`average.py` function consists of several stages:
+1. preparing the data to be averaged
+   ```python
+    resp = package[1]
+    resp_list = resp.split(",")
+    for x in range(len(resp_list)):
+        bno_list[x].append(float(resp_list[x]))
+    ```
+   ```python
+   resp = package[1]
+   resp_list = resp.split(",")
+   for x in range(len(resp_list)):
+       bno_list[x].append(float(resp_list[x]))
+   ```
+2. averaging the data 
+   ```python
+    for bmp_data in bmp_list:
+        bmp_lora_resp += division(bmp_data)
+    ```
+   ```python
+    def division(data):
+        summary = sum(data)
+        summary_str = str(summary)
+        ext = len(summary_str) - 1 - summary_str.index(".")
+        div = (int(summary_str.replace('.', '')) // len(data))
+        data_resp = str(round(div / (10 ** ext), 2)) + ","
+        return data_resp
+    ```
+   The above element solves the problem the `thread` library has with dividing `float` data resulting in unstable functioning of the program.  
+<br>
+3. returning the averaged data together with validated GPS data
+    ```python
+    sensors_data_tmp_new = str(coma_valid(bmp_lora_resp)) + ";" + str(coma_valid(bno_lora_resp)) + ";" + str(gps_lora_resp)
+    ```
+   GPS validation process consists in finding the latest correct GPS data reading.
+    ```python
+    for package in sensors_data_tmp:
+        if package[2] is not None and package[2][0:3] != "ERR":
+            gps_lora_resp = package[2]
+    ```
